@@ -1,0 +1,21 @@
+{
+   "app": {
+      "mode": "gateway",
+      "threads": 2
+   },
+
+   "gateway": {
+      "host": "10.21.23.15",
+      "port": 8727,
+
+      "system-id"   : "system-id-goes-here",
+      "password"    : "password-goes-here",
+      "system-type" : "USSD",
+      "welcome-page": "Not needed in gateway mode, can be left empty",
+
+      "client": {
+        "url": "http://127.0.0.1:9980/"
+      }
+   }
+}
+ 
