@@ -8,10 +8,9 @@ cuap-gateway communicates with ISP via config, data received are sent to HTTP ba
 
 Dependencies:
 
-Trantor  : https://github.com/an-tao/trantor
+[Trantor]: https://github.com/an-tao/trantor
 
 Drogon   : https://github.com/an-tao/drogon
-
 Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified version.
 
 
@@ -20,8 +19,10 @@ Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified vers
 
    1. `$ ./cuap-gateway.exodus .`
       to extract app into current dir. Current dir now have `bin/` `data/` and `bundles/`
-      2. 
-      3. `$ bin/cuap-gateway --config=gateway.json`  to run the App itself
+
+      
+      
+   2. `$ bin/cuap-gateway --config=gateway.json`  to run the App itself
       `bin/cuap-gateway --help` to see help message, but config file for control currently.
 
 
@@ -60,8 +61,6 @@ Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified vers
           "simple"  mode is supposed to display whatever you have in welcome-page only : string [WIP]
     
     threads:  App threads to run: integer [WIP]
-
-
 
    `gateway` : USSDC gateway configuration
 
