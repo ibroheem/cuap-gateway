@@ -84,32 +84,39 @@ url: http://ip:port/ : string
 
 #### How it works.
 
-1. BIND:
 
-    When cuap-gateway successfully login, it sends below payload to HTTP backend:
 
-        { "command": 103, "length": 31, "system_id": "your system-id" }
+###### 1. BIND: Login to USSDC
 
-     Backend responds with:  `{ "status": 200, "message": "Success" }`
-     Non 200 indicates error.
+When cuap-gateway successfully login, it sends below payload to HTTP backend:
 
-    
+​	    `{ "command": 103, "length": 31, "system_id": "your system-id" }`
 
-2. When user make a USSD request, say *142#.
 
-   2a. This shows the details of the pdu coming in from USSDC.
 
-    `{ "sid": "0x0001db02", "rid": "0xffffffff", "service_code": "*142", "operation": "USSR", "msisdn": "80xxxxxxxxxx" }`
+ HTTP Backend should respond with:  `{ "status": 200, "message": "Success" }`
+
+    Non 200 indicates error.
+
+ 
+
+###### 2. When user make a USSD request, say *142#.
 
    
-   
+
+   [2a]. This shows the details of the pdu coming in from USSDC.
+
+​		`{ "sid": "0x0001db02", "rid": "0xffffffff", "service_code": "*142", "operation": "USSR", "msisdn": "80xxxxxxxxxx" }`
+
    ```
     sid:          Sender ID
     rid:          Receiver ID
     service_code: code typed, # is removed in the specs
     operation   : represents type of operation to be performed
    ```
-   
+
+     operation:
+     
          USSR = message sent from an SP to the USSDC.
                 Comes with Begin message, i.e when user types the code and press send. As we can see above it's "USSR"
         
@@ -119,15 +126,20 @@ url: http://ip:port/ : string
             Unstructured supplementary service data NOTIFY (USSN), message sent from an SP to the USSDC.
             This is the DIALOG without input, just a display dialog hence the name NOTIFY.
 
-   2b. Below is what gets send to the HTTP backend:
+   
 
-​			`{ "command": 111, "sid": "0x00013731", "length": 0, "msisdn": "80xxxxxxxxxx", "content": "*142" }`
+​	[2b]. Below is what gets send to the HTTP backend:
 
-> command: CAUP PDU Command ID, refer to the CUAP docs for this. Convert the HEX to Deicimal for usage here in your json payload.
-> length      : CUAP PDU Command Length
-> sid            : Sender ID
-> msisdn    : Sender's Phone number
-> content   : What user typed
+​			`{ "command": 111, "sid": "0x00013731", "length": 0, "msisdn": "80xxxxxxxxxx", "content": "*142" }`						
+
+```
+command: CAUP PDU Command ID, refer to the CUAP docs for this. Convert the HEX to Deicimal for usage here in your json payload.
+length : CUAP PDU Command Length
+sid    : Sender ID
+msisdn : Sender's Phone number
+content: What user typed
+```
+
 
 
 HTTP Backend responds with:
@@ -144,8 +156,9 @@ USSN = 2,
 
    
 
-2c. When user selects an option, u get:
-       ` { "command": 112, "sid": "0x00013731", "length": 66, "msisdn": "80xxxxxxxxxx", "content": "Option 1" }`
+​	[2c]. When user selects an option, u get:
+
+​       ` { "command": 112, "sid": "0x00013731", "length": 66, "msisdn": "80xxxxxxxxxx", "content": "Option 1" }`
 
 ​	
 
@@ -166,7 +179,7 @@ USSN = 2,
 
 
 
-2d. When a user press the Cancel/End button on the phone, USSDC (ISP) sends an abort. `cuap-gateway` will send the below to the HTTP Backend for processing.
+​	[2d]. When a user press the Cancel/End button on the phone, USSDC (ISP) sends an abort. `cuap-gateway` will send the below to the HTTP Backend for processing.
 
 ​	`{ "command": 114, "sid": "0x00013731", "length": 20 }`
 
