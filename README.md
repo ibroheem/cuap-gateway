@@ -6,19 +6,25 @@ cuap-gateway communicates with ISP via config, data received are sent to HTTP ba
 
 #### Building
 
-Dependencies
+Dependencies:
 
-​	Trantor    : https://github.com/an-tao/trantor
-​	Drogon    : https://github.com/an-tao/drogon
-​	Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified version.
+```
+Trantor  : https://github.com/an-tao/trantor
+Drogon   : https://github.com/an-tao/drogon
+Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified version.
+```
 
-Running via Exodus binary:
+
+
+#### Running via Exodus binary:
 
    1. `$ ./cuap-gateway.exodus .`
-      to extract app into current dir. Current dir now have bin/ data/ and bundles/
-
-   2. `$ bin/cuap-gateway --config=gateway.json`  to run the App itself
+      to extract app into current dir. Current dir now have `bin/` `data/` and `bundles/`
+      2. 
+      3. `$ bin/cuap-gateway --config=gateway.json`  to run the App itself
       `bin/cuap-gateway --help` to see help message, but config file for control currently.
+
+
 
 `gateway.json` looks like:
 
@@ -46,6 +52,7 @@ Running via Exodus binary:
 ```
 
 
+
    `app` : application configuration
 
     mode: gateway | simple.
@@ -53,6 +60,8 @@ Running via Exodus binary:
           "simple"  mode is supposed to display whatever you have in welcome-page only : string [WIP]
     
     threads:  App threads to run: integer [WIP]
+
+
 
    `gateway` : USSDC gateway configuration
 
@@ -156,7 +165,9 @@ USSN = 2,
 
    
 
-​	[2c]. When user selects an option, u get:
+​	
+
+[2c]. When user selects an option, u get:
 
 ​       ` { "command": 112, "sid": "0x00013731", "length": 66, "msisdn": "80xxxxxxxxxx", "content": "Option 1" }`
 
@@ -179,7 +190,9 @@ USSN = 2,
 
 
 
-​	[2d]. When a user press the Cancel/End button on the phone, USSDC (ISP) sends an abort. `cuap-gateway` will send the below to the HTTP Backend for processing.
+​	
+
+[2d]. When a user press the Cancel/End button on the phone, USSDC (ISP) sends an abort. `cuap-gateway` will send the below to the HTTP Backend for processing.
 
 ​	`{ "command": 114, "sid": "0x00013731", "length": 20 }`
 
