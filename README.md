@@ -8,10 +8,11 @@ cuap-gateway communicates with ISP via config, data received are sent to HTTP ba
 
 Dependencies:
 
-[Trantor]: https://github.com/an-tao/trantor	"Trantor"
+- `Trantor`    :  https://github.com/an-tao/trantor
 
-Drogon   : https://github.com/an-tao/drogon
-Argparser: https://github.com/fmenozzi/argparser. I use a slightly modified version.
+- `Drogon`      :  https://github.com/an-tao/drogon
+
+- `Argparser`:  https://github.com/fmenozzi/argparser. I use a slightly modified version.
 
 
 
