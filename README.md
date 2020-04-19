@@ -75,8 +75,10 @@ Running via Exodus binary:
 
    `client` :  http backend related config
 
-> url: http://ip:port/ of the HTTP Backend the Gateway will forward requests to : string
->          Example: "http://127.0.0.1:9980/" : string
+```
+url: http://ip:port/ : string
+	 Url of the HTTP Backend cuap-ateway will forward requests to.
+```
 
 
 
@@ -93,50 +95,52 @@ Running via Exodus binary:
 
 2. When user make a USSD request, say *142#.
 
-   
-
    2a. This shows the details of the pdu coming in from USSDC.
 
     `{ "sid": "0x0001db02", "rid": "0xffffffff", "service_code": "*142", "operation": "USSR", "msisdn": "80xxxxxxxxxx" }`
+
    
    
+   ```
+    sid:          Sender ID
+ rid:          Receiver ID
+    service_code: code typed, # is removed in the specs
+    operation:    represents type of operation to be performed
+   ```
    
->  sid:          Sender ID
-   >  rid:          Receiver ID
-   >  service_code: code typed, # is removed in the specs
-   >  operation     :  represents type of operation to be performed
-   
-   >       USSR = message sent from an SP to the USSDC.
-   >              Comes with Begin message, i.e when user types the code and press send. As we can see above it's "USSR"
-   >      
-   >       PSSR = process unstructured supplementary service data request (PSSR).
-   >              Dialog with input.
-   >       USSN =
-   >          Unstructured supplementary service data NOTIFY (USSN), message sent from an SP to the USSDC.
-   >          This is the DIALOG without input, just a display dialog hence the name NOTIFY.
+         USSR = message sent from an SP to the USSDC.
+                Comes with Begin message, i.e when user types the code and press send. As we can see above it's "USSR"
+        
+         PSSR = process unstructured supplementary service data request (PSSR).
+                Dialog with input.
+         USSN =
+            Unstructured supplementary service data NOTIFY (USSN), message sent from an SP to the USSDC.
+            This is the DIALOG without input, just a display dialog hence the name NOTIFY.
 
    2b. Below is what gets send to the HTTP backend:
 
 ​			`{ "command": 111, "sid": "0x00013731", "length": 0, "msisdn": "80xxxxxxxxxx", "content": "*142" }`
 
-> 	command: CAUP PDU Command ID, refer to the CUAP docs for this. Convert the HEX to Deicimal for usage here in your json payload.
-> 	length : CUAP PDU Command Length
-> 	sid    : Sender ID
-> 	msisdn : Sender's Phone number
-> 	content: What user typed
-
+```
+command: CAUP PDU Command ID, refer to the CUAP docs for this. Convert the HEX to Deicimal for usage here in your json payload.
+length : CUAP PDU Command Length
+sid    : Sender ID
+msisdn : Sender's Phone number
+content: What user typed
+```
 
 
 HTTP Backend responds with:
 
 ​	 `{ "command": 112, "op_type": 1, "msisdn": "80xxxxxxxxxx", "content": "Welcome to Our USSD Service....." }`
 
->     op_type: is the operation type discussed above.
->     
->     USSR = 1,
->     PSSR = 1, // Yes also one, except the direction is reversed it is sent to caup-gateway -----> USSDC (ISP)
->     USSN = 2,
->
+```
+op_type: is the operation type discussed above.
+
+USSR = 1,
+PSSR = 1, // Yes also one, except the direction is reversed it is sent to caup-gateway -----> USSDC (ISP)
+USSN = 2,
+```
 
    
 
@@ -149,9 +153,10 @@ HTTP Backend responds with:
 
 ​		`{ "command": 113, "op_type": 2, "msisdn": "80xxxxxxxxxx", "content": "What ever Option one is to fetch" }`
 
->     	command : 113, is USSDEnd. Refer to CUAP Documention from ISP. Remember to convert to decimal.
->         op_type : 2  , is USSN. As described above in (2a)
->
+```
+	command : 113, is USSDEnd. Refer to CUAP Documention from ISP. Remember to convert to decimal.
+    op_type : 2  , is USSN. As described above in (2a)
+```
 
 
 
@@ -165,5 +170,6 @@ HTTP Backend responds with:
 
 ​	`{ "command": 114, "sid": "0x00013731", "length": 20 }`
 
->      With sid you can know which msisdn aborted, since it's included in the payload shown above in (2b).
->
+```
+ With sid you can know which msisdn aborted, since it's included in the payload shown above in (2b).
+```
