@@ -8,12 +8,17 @@ cuap-gateway communicates with ISP via config, data received are sent to HTTP ba
 
 Dependencies:
 
+- `fmt`    :  https://github.com/fmtlib/fmt
+- `jsoncpp`    :  https://github.com/open-source-parsers/jsoncpp
 - `Trantor`    :  https://github.com/an-tao/trantor
-
 - `Drogon`      :  https://github.com/an-tao/drogon
-
 - `Argparser`:  https://github.com/fmenozzi/argparser. I use a slightly modified version.
 
+Using `g++` from the cmd:
+
+`g++-8 -O3 -DNDEBUG -fconcepts -std=c++2a  main.cpp -I/include/path/to/fmt -I/usr/include/jsoncpp -I/include/path/to/drogn -I/include_other_paths_too   -o cuap-gateway.elf   -L/path/to/fmt/lib  -L/path/to/trantor/lib  -L/path/to/drogon/lib  -lfmt -ldrogon -ltrantor -ljsoncpp -luuid -lssl -lcrypto -lz -ldl -lpthread`
+
+TODO: Building via CMake.
 
 
 #### Running via Exodus binary:
@@ -109,6 +114,7 @@ When cuap-gateway successfully login, it sends below payload to HTTP backend:
 
  
 
+
 ###### 2. When user make a USSD request, say *142#.
 
    
@@ -136,6 +142,7 @@ When cuap-gateway successfully login, it sends below payload to HTTP backend:
             This is the DIALOG without input, just a display dialog hence the name NOTIFY.
 
    
+
 
 ​	[2b]. Below is what gets send to the HTTP backend:
 
@@ -178,8 +185,8 @@ USSN = 2,
 ​		`{ "command": 113, "op_type": 2, "msisdn": "80xxxxxxxxxx", "content": "What ever Option one is to fetch" }`
 
 ```
-	command : 113, is USSDEnd. Refer to CUAP Documention from ISP. Remember to convert to decimal.
-    op_type : 2  , is USSN. As described above in (2a)
+command : 113, is USSDEnd. Refer to CUAP Documention from ISP. Remember to convert to decimal.
+op_type : 2  , is USSN. As described above in (2a)
 ```
 
 
