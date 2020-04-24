@@ -11,7 +11,6 @@
 #include "pdu/pdu.h"
 
 #include "misc.h"
-#include "fmt-5.h"
 #include "config.h"
 
 using namespace trantor;
@@ -65,6 +64,7 @@ namespace misc
    {
       ap::parser p;
       p.init(argc, argv);
+      p.set_caption("A CUAP gateway that allows data transfer via HTTP interface.");
       p.add("-T", "--threads",    "Threads to spawn [ 4 by default ]",     ap::mode::OPTIONAL);
       p.add("-c", "--config",    "config file",     ap::mode::OPTIONAL);
       p.add("-H", "--host",       "Local Hostname | IP to listen [ 0.0.0.0 default ]",      ap::mode::OPTIONAL);
@@ -117,7 +117,6 @@ namespace misc
    }
 }
 
-
 namespace gateway
 {
    using tcp_client_t   = std::shared_ptr<trantor::TcpClient>;
@@ -129,6 +128,10 @@ namespace gateway
    cchar_t fmt_cmdid     = "Command ID  : 0x{:08x}, {}\n";
    cchar_t fmt_req_cont  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
    cchar_t fmt_resp_ok   = R"({{ "status": {}, "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
+
+   static char fmt_req_begin[]  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
+   static char fmt_req_error[]  = R"({}. [ gateway::{} error ]: request to {} failed: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
+   static char fmt_data_error[] = R"({}. [ gateway::{} error ]: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
 
 
    void setup_bind(config::config_t& cfg, pdu::bind_msg_t& bindmsg)
@@ -153,7 +156,8 @@ namespace gateway
 
    namespace send
    {
-      namespace samples {
+      namespace samples
+      {
          uint8_t unbind[] =
          {
             0x14, 0x00, 0x00, 0x00, 0x66, 0x00, 0x00, 0x00,
@@ -169,18 +173,17 @@ namespace gateway
          };
       }
 
-
       void shake(tcp_client_t client, tcp_conn_t conn, msg_buffer_t msg)
       {
          pdu::shake_msg_t shake (samples::shake, sizeof(samples::shake));
          shake.encode_header();
-         conn->send((char*)shake.data(), shake.capacity());
-      #ifdef ENABLE_PDU_LOG
+         conn->send(shake.data(), shake.capacity());
+//      #ifdef ENABLE_PDU_LOG
          fmt::print_cyan("\n{}. [ {}::shake info ]: Sent Shake Message to: {}\n",
             misc::current_time(), client->name(), conn->peerAddr().toIpPort()
          );
          misc::print_pdu(samples::shake, sizeof(samples::shake));
-      #endif
+//      #endif
          std::this_thread::sleep_for (std::chrono::milliseconds(250));
       }
 
@@ -188,7 +191,7 @@ namespace gateway
       {
          pdu::unbind_msg_t unbind (samples::unbind, sizeof(samples::unbind));
          unbind.encode_header();
-         conn->send((char*)unbind.data(), unbind.capacity());
+         conn->send(unbind.data(), unbind.capacity());
          fmt::print_cyan("\n{}. [{}::on_message]: Sent UnBind Message to: {}\n",
             misc::current_time(), client->name(), conn->peerAddr().toIpPort()
          );
@@ -221,13 +224,10 @@ namespace gateway
       {
          setup_config();
          setup_bind(cfg, bindmsg);
-
-         evloop_tcp.run();
-         evloop_http.run();
       }
 
-      void build_abort(pdu_type&, auto&&);
-      void build_begin(pdu_type&,  pdu_type&, auto&&);
+      void build_abort(pdu_type&,     auto&&);
+      void build_begin(pdu_type&,     pdu_type&, auto&&);
       void build_continue(pdu_type&,  pdu_type&, auto&&);
 
       template <command_id request_type = command_id::begin>
@@ -265,6 +265,9 @@ namespace gateway
       {
          setup_tcp();
          tcp_client->connect();
+
+         evloop_tcp.run();
+         evloop_http.run();
          evloop_tcp.wait();
       }
 
@@ -281,85 +284,9 @@ namespace gateway
       pdu::unbind_msg_t     unbindmsg;
    };
 
-   void gateway_t::build_begin(pdu_type& pdu, pdu_type& pdu_req, auto&& fn)
-   {
-      static cchar_t fmt_req_begin = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
-
-      pdu_req.decode_header();
-
-      auto sender_id   = pdu_req.sender_id();
-      auto receiver_id = pdu_req.receiver_id();
-      auto op          = pdu_req.ussd_op_type();
-
-      string msisdn       = pdu_req.msisdn();
-      string service_code = pdu_req.service_code();
-
-      fmt::print("{}. [ gateway::build_begin info ]: request: {}", misc::current_time(),
-         fmt::format(fmt_req_begin, sender_id, receiver_id, service_code, op_name(op), msisdn)
-      );
-
-      pdu.set_command_status(0);
-      pdu.set_receiver_id(sender_id);
-      pdu.set_ussd_ver(pdu::UssdVersion::PHASEII);
-      pdu.set_msisdn(msisdn);
-      pdu.set_service_code(service_code);
-      pdu.set_code_scheme(pdu::CodeScheme::Ox0F);
-
-      HttpRequestPtr req = build_http_request<command_id::begin>(pdu_req);
-      http_client->sendRequest(req, [&/*, tconn = std::move(conn)*/](ReqResult result, const HttpResponsePtr& response)
-      {
-         if (result == ReqResult::Ok && response)
-         {
-            Json::Value json;
-            if (misc::parse_json(json, response->getBody()) and misc::check_json(json))
-            {
-               try
-               {
-                  fmt::print_green("{}. [ gateway::build_begin info ]: response: {}\n", misc::current_time(), response->getBody());
-                  pdu.set_ussd_content(json["content"].asCString());
-                  pdu.set_ussd_op_type(json["op_type"].asUInt());
-                  pdu.set_command_id(json["command"].asUInt());
-               }
-               catch(std::exception& e)
-               {
-                  fmt::print_red("{}. [ gateway::build_begin exception ]: {}\n", misc::current_time(), e.what());
-                  pdu.set_command_id(pdu::CommandIDs::End);
-               }
-            }
-            else
-            {
-               fmt::print_red("{}. [ gateway::build_begin error ]: Unable to parse JSON response: {}\n", misc::current_time(), response->body());
-               //pdu.set_ussd_content("Invalid data.");
-               pdu.set_command_id(pdu::CommandIDs::End);
-               pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
-               /// TODO: Error to be displayed to mobile be defined in config file. [remote.response.invalid_data]
-            }
-         }
-         else
-         {
-            fmt::print_red("{}. [ gateway::build_begin error ]: request to {}:{} failed\n",
-               misc::current_time(), cli_cfg.rhost, cli_cfg.rport
-            );
-            pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
-            pdu.set_command_id(pdu::CommandIDs::End);
-            //pdu.set_ussd_content("Error in communication.");
-            /// TODO: Error to be displayed to mobile be defined in config file.  [remote.response.error]
-         }
-
-         pdu.set_command_len();
-         pdu.encode_header();
-
-         #ifdef ENABLE_PDU_LOG
-            misc::print_pdu(pdu, be32toh(pdu.command_len()));
-         #endif
-         fn();
-      });
-
-   }
-
    void gateway_t::build_abort(pdu_type& pdu_req, auto&& fn)
    {
-      static cchar_t fmt_req_begin = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
+      static char fn_name[] = "build_abort";
 
       pdu_req.decode_header();
 
@@ -387,10 +314,85 @@ namespace gateway
          }
          else
          {
-            fmt::print_red("{}. [ gateway::build_abort error ]: request to {}:{} failed\n",
-               misc::current_time(), cli_cfg.rhost, cli_cfg.rport
+            fmt::print_red("{}. [ gateway::build_abort error ]: request to {} failed\n",
+               misc::current_time(), cfg.http.url
             );
          }
+
+         #ifdef ENABLE_PDU_LOG
+            misc::print_pdu(pdu_req, pdu_req.command_len());
+         #endif
+         fn();
+      });
+
+   }
+
+   void gateway_t::build_begin(pdu_type& pdu, pdu_type& pdu_req, auto&& fn)
+   {
+      static char fn_name[] = "build_begin";
+
+      pdu_req.decode_header();
+
+      auto sender_id   = pdu_req.sender_id();
+      auto receiver_id = pdu_req.receiver_id();
+      auto op          = pdu_req.ussd_op_type();
+
+      string msisdn       = pdu_req.msisdn();
+      string service_code = pdu_req.service_code();
+
+      fmt::print("{}. [ gateway::build_begin info ]: request: {}", misc::current_time(),
+         fmt::format(fmt_req_begin, sender_id, receiver_id, service_code, op_name(op), msisdn)
+      );
+
+      pdu.set_command_status(0);
+      pdu.set_receiver_id(sender_id);
+      pdu.set_ussd_ver(pdu::UssdVersion::PHASEII);
+      pdu.set_msisdn(msisdn);
+      pdu.set_service_code(service_code);
+      pdu.set_code_scheme(pdu::CodeScheme::Ox0F);
+
+      HttpRequestPtr req = build_http_request<command_id::begin>(pdu_req);
+      http_client->sendRequest(req, [&](ReqResult result, const HttpResponsePtr& response)
+      {
+         if (result == ReqResult::Ok && response)
+         {
+            Json::Value json;
+            if (misc::parse_json(json, response->getBody()) and misc::check_json(json))
+            {
+               try
+               {
+                  fmt::print_green("{}. [ gateway::build_begin info ]: response: {}\n", misc::current_time(), response->getBody());
+                  pdu.set_ussd_content(json["content"].asCString());
+                  pdu.set_ussd_op_type(json["op_type"].asUInt());
+                  pdu.set_command_id(json["command"].asUInt());
+               }
+               catch(std::exception& e)
+               {
+                  fmt::print_red("{}. [ gateway::build_begin exception ]: {}\n", misc::current_time(), e.what());
+                  pdu.set_command_id(pdu::CommandIDs::End);
+               }
+            }
+            else
+            {
+               fmt::print_red("{}. [ gateway::build_begin error ]: Unable to parse JSON response: {}\n",
+                  misc::current_time(), response->body()
+               );
+               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.http.error.invalid_data);
+               pdu.set_command_id(pdu::CommandIDs::End);
+               pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
+               pdu.set_ussd_content(cfg.http.error.invalid_data);
+            }
+         }
+         else
+         {
+            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.http.url, sender_id, cfg.http.error.request_failed);
+            pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
+            pdu.set_command_id(pdu::CommandIDs::End);
+            pdu.set_ussd_content(cfg.http.error.request_failed);
+         }
+
+         pdu.set_command_len();
+         pdu.encode_header();
 
          #ifdef ENABLE_PDU_LOG
             misc::print_pdu(pdu, be32toh(pdu.command_len()));
@@ -402,7 +404,7 @@ namespace gateway
 
    void gateway_t::build_continue(pdu_type& pdu, pdu_type& pdu_req, auto&& fn)
    {
-      static cchar_t fmt_req_begin = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
+      static char fn_name[] = "build_continue";
 
       pdu_req.decode_header();
 
@@ -449,21 +451,18 @@ namespace gateway
             else
             {
                fmt::print_red("{}. [ gateway::build_end error ]: Unable to parse JSON response: {}\n", misc::current_time(), response->body());
-               //pdu.set_ussd_content("Invalid data.");
+               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.http.error.invalid_data);
                pdu.set_command_id(pdu::CommandIDs::End);
                pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
-               /// TODO: Error to be displayed to mobile be defined in config file. [remote.response.invalid_data]
+               pdu.set_ussd_content(cfg.http.error.invalid_data);
             }
          }
          else
          {
-            fmt::print_red("{}. [ gateway::build_continue error ]: request to {}:{} failed\n",
-               misc::current_time(), cli_cfg.rhost, cli_cfg.rport
-            );
+            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.http.url, sender_id, cfg.http.error.could_not_fetch);
             pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
             pdu.set_command_id(pdu::CommandIDs::End);
-            //pdu.set_ussd_content("Error in communication.");
-            /// TODO: Error to be displayed to mobile be defined in config file.  [remote.response.error]
+            pdu.set_ussd_content(cfg.http.error.could_not_fetch);
          }
 
          pdu.set_command_len();
@@ -550,7 +549,7 @@ namespace gateway
             misc::print_pdu(bindmsg);
          #endif
 
-         conn->send((char*)bindmsg.data(), bindmsg.capacity());
+         conn->send(bindmsg.data(), bindmsg.capacity());
          fmt::print_green("{}. [ {}::on_connection info ]: Sent Bind Message to: {}\n", misc::current_time(), tcp_client->name(), raddr);
       }
       else
@@ -603,8 +602,8 @@ namespace gateway
             {
                continue_msg_t pdu, pdu_req { msg->peek(), msg->readableBytes() };
                pdu.set_sender_id(++id);
-               build_begin(pdu, pdu_req, [&] {
-                  conn->send((char*)pdu.data(), pdu.capacity());
+               build_begin(pdu, pdu_req, [&, tconn = std::move(conn)] {
+                  tconn->send(pdu.data(), pdu.capacity());
                });
             }
             break;
@@ -614,8 +613,8 @@ namespace gateway
             {
                continue_msg_t pdu, pdu_req { msg->peek(), msg->readableBytes() };
                pdu.set_sender_id(id);
-               build_continue(pdu, pdu_req, [&] {
-                  conn->send((char*)pdu.data(), pdu.capacity());
+               build_continue(pdu, pdu_req, [&, tconn = std::move(conn)] {
+                  tconn->send(pdu.data(), pdu.capacity());
                });
             } break;
 
