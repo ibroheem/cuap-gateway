@@ -14,7 +14,13 @@
       "welcome-page": "Not needed in gateway mode, can be left empty",
 
       "client": {
-        "url": "http://127.0.0.1:9980/"
+        "url": "http://127.0.0.1:9980/",
+        "error": {
+            "could-not-fetch" : "Your message could not be processed at this time.  Please try again later. [err=could-not-fetch]",
+            "invalid-data"    : "Your message could not be processed at this time.  Please try again later. [err=invalid-data]",
+            "request-failed"  : "Your message could not be processed at this time.  Please try again later. [err=request-failed]",
+            "could-not-represent": "Your message could not be processed at this time.  Please try again later. [err=could-not-represent]"
+        }
       }
    }
 }
