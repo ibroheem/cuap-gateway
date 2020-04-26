@@ -1,7 +1,12 @@
 #ifndef functions_h
 #define functions_h
 
-#include <bpstd/string_view.h>
+#ifdef USE_BPSTD_SRTRINGVIEW
+   #include <bpstd/string_view.h>
+#else
+   #include <string_view>
+#endif
+
 #include "types.h"
 
 template <typename T>
