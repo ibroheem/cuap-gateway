@@ -8,28 +8,44 @@ cuap-gateway communicates with ISP via config, data received are sent to HTTP ba
 
 Dependencies:
 
-- `fmt`    :  https://github.com/fmtlib/fmt
+- `fmt [version 5]`    :  https://github.com/fmtlib/fmt
+
+  ```
+  git clone  https://github.com/fmtlib/fmt
+  cd fmt
+  git checkout 5.3.0
+  mkdir build && cd build
+  cmake .. -DFMT_TEST=OFF && make -j4 
+  sudo make install # or install wherever u like
+  ```
+
 - `jsoncpp`    :  https://github.com/open-source-parsers/jsoncpp
+
 - `Trantor`    :  https://github.com/an-tao/trantor
+
 - `Drogon`      :  https://github.com/an-tao/drogon
-- `Argparser`:  https://github.com/fmenozzi/argparser. I use a slightly modified version.
+
+- `[Modified] Argparser`:  https://github.com/fmenozzi/argparser. It is included with the project
+
+
 
 Using `g++` from the cmd:
 
 `g++-8 -O3 -DNDEBUG -fconcepts -std=c++2a  main.cpp -I/include/path/to/fmt -I/usr/include/jsoncpp -I/include/path/to/drogn -I/include_other_paths_too   -o cuap-gateway.elf   -L/path/to/fmt/lib  -L/path/to/trantor/lib  -L/path/to/drogon/lib  -lfmt -ldrogon -ltrantor -ljsoncpp -luuid -lssl -lcrypto -lz -ldl -lpthread`
 
-TODO: Building via CMake.
+TODO: Building via CMAKE.
+
 
 
 #### Running via Exodus binary:
 
-   1. `$ ./cuap-gateway.exodus .`
+   1. `$ ./gateway.exodus .`
       to extract app into current dir. Current dir now have `bin/` `data/` and `bundles/`
 
       
       
-   2. `$ bin/cuap-gateway --config=gateway.json`  to run the App itself
-      `bin/cuap-gateway --help` to see help message, but config file for control currently.
+   2. `$ bin/gateway --config=gateway.json`  to run the App itself
+      `bin/gateway --help` to see help message, but config file for control currently.
 
 
 
@@ -52,7 +68,12 @@ TODO: Building via CMake.
          "welcome-page": "WIP",
 
          "client": {
-           "url": "http://127.0.0.1:9980/"
+           "url": "http://127.0.0.1:9980/",
+           "error": {
+            	"could-not-fetch" : "Error message goes here. [err=could-not-fetch]",
+            	"invalid-data"    : "Error message goes here. [err=invalid-data]",
+            	"request-failed"  : "Error message goes here. [err=request-failed]",
+            }
          }
       }
    }
@@ -68,7 +89,10 @@ TODO: Building via CMake.
     
     threads:  App threads to run: integer [WIP]
 
-   `gateway` : USSDC gateway configuration
+   
+
+
+`gateway` : USSDC gateway configuration
 
     host:   put the host given to you by ISP : string
     port:   Port                             : integer
@@ -92,6 +116,11 @@ TODO: Building via CMake.
 ```
 url: http://ip:port/ : string
 	 Url of the HTTP Backend cuap-ateway will forward requests to.
+
+errors: these are errors to be displayed when the particular client in not available.
+	could-not-fetch : When it fails trying to get data from HTTP backend.
+    invalid-data    : When no | bad | unexpected data is gotten from HTTP backend.
+    request-failed  : When user make first request (e.g *292#), and the data couldn't be fetched.
 ```
 
 
@@ -113,6 +142,8 @@ When cuap-gateway successfully login, it sends below payload to HTTP backend:
     Non 200 indicates error.
 
  
+
+
 
 
 ###### 2. When user make a USSD request, say *142#.
@@ -142,6 +173,8 @@ When cuap-gateway successfully login, it sends below payload to HTTP backend:
             This is the DIALOG without input, just a display dialog hence the name NOTIFY.
 
    
+
+
 
 
 ​	[2b]. Below is what gets send to the HTTP backend:
