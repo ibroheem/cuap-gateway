@@ -71,6 +71,7 @@ namespace ap {
         int                      m_argc;
         std::vector<std::string> m_argv;
         std::vector<argstruct>   m_args;
+        std::string m_caption;
 
         bool m_any_adds_failed = false;
 
@@ -167,6 +168,7 @@ namespace ap {
                     max_len = arg_len;
             }
 
+            fprintf(stdout, "%s\n\n", m_caption.c_str());
             fprintf(stdout, "Arguments:\n");
             fprintf(stdout, "%s-h, --help", leftpadstr);
             for (int i = 0; i < (int)(max_len + rightpad - help_len); i++) {
@@ -349,6 +351,7 @@ namespace ap {
         }
 
         void print_help() { print_help_string(); }
+        void set_caption(const char* hlp) { m_caption = hlp; }
     };
 }
 
