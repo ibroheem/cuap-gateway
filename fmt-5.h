@@ -1,9 +1,9 @@
 #ifndef io_fmt_h
 #define io_fmt_h
 
-#include <fmt/5/format.h>
-#include <fmt/5/ostream.h>
-#include <fmt/5/color.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <fmt/color.h>
 //#include <fmt/printf.h>
 
 using std::ostream;
