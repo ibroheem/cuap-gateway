@@ -41,12 +41,14 @@ namespace fmt
 
    template <class T, size_t N>
    using mem_writer_generic = basic_mem_writer<T, N>;
-#else
-   using namespace v5;
+#elif FMT_VERSION >= 50000 && FMT_VERSION < 60000
+   using namespace fmt::v5;
    template <class T, int SZ>
    using basic_mem_writer = fmt::v5::basic_memory_buffer<T, SZ>;
 
 #endif
+
+#if FMT_VERSION < 60000
    using mem_writer32_t = basic_mem_writer<char, 32>;
    using mem_writer40_t = basic_mem_writer<char, 40>;
    using mem_writer64_t = basic_mem_writer<char, 64>;
@@ -59,6 +61,7 @@ namespace fmt
 
    using umem_writer40_t  = basic_mem_writer<unsigned char, 40>;
    using umem_writer512_t = basic_mem_writer<unsigned char, 512>;
+#endif
 }
 
 #ifdef ENABLE_DEPRECATED_COLORS
@@ -126,7 +129,7 @@ namespace fmt
 namespace fmt
 {
    //using CStringRef = fmt::string_view;
-//#ifdef
+#if FMT_VERSION >= 50000 && FMT_VERSION < 60000
    template <class ...T>
    void print_blue(const char* frmt, T&&... args)
    {
@@ -180,6 +183,7 @@ namespace fmt
    {
       print(style, "{}", format(formt, args...));
    }
+#endif
 }
 
 namespace io_fmt = fmt;
