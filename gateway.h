@@ -177,13 +177,13 @@ namespace gateway
       {
          pdu::shake_msg_t shake (samples::shake, sizeof(samples::shake));
          shake.encode_header();
-         conn->send(shake.data(), shake.capacity());
-//      #ifdef ENABLE_PDU_LOG
+         conn->send(shake, shake.capacity());
+      #ifdef ENABLE_PDU_LOG
          fmt::print_cyan("\n{}. [ {}::shake info ]: Sent Shake Message to: {}\n",
             misc::current_time(), client->name(), conn->peerAddr().toIpPort()
          );
          misc::print_pdu(samples::shake, sizeof(samples::shake));
-//      #endif
+      #endif
          std::this_thread::sleep_for (std::chrono::milliseconds(250));
       }
 
@@ -191,7 +191,7 @@ namespace gateway
       {
          pdu::unbind_msg_t unbind (samples::unbind, sizeof(samples::unbind));
          unbind.encode_header();
-         conn->send(unbind.data(), unbind.capacity());
+         conn->send(unbind, unbind.capacity());
          fmt::print_cyan("\n{}. [{}::on_message]: Sent UnBind Message to: {}\n",
             misc::current_time(), client->name(), conn->peerAddr().toIpPort()
          );
@@ -450,7 +450,7 @@ namespace gateway
             }
             else
             {
-               fmt::print_red("{}. [ gateway::build_end error ]: Unable to parse JSON response: {}\n", misc::current_time(), response->body());
+               fmt::print_red("{}. [ gateway::build_continue error ]: Unable to parse JSON response: {}\n", misc::current_time(), response->body());
                fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.http.error.invalid_data);
                pdu.set_command_id(pdu::CommandIDs::End);
                pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
@@ -521,7 +521,7 @@ namespace gateway
 
    void gateway_t::send_http_request(HttpRequestPtr& req)
    {
-      http_client->sendRequest(req, [=](ReqResult result, const HttpResponsePtr& response)
+      http_client->sendRequest(req, [&](ReqResult result, const HttpResponsePtr& response)
       {
          if (result == ReqResult::Ok && response)
          {
@@ -549,7 +549,7 @@ namespace gateway
             misc::print_pdu(bindmsg);
          #endif
 
-         conn->send(bindmsg.data(), bindmsg.capacity());
+         conn->send(bindmsg, bindmsg.capacity());
          fmt::print_green("{}. [ {}::on_connection info ]: Sent Bind Message to: {}\n", misc::current_time(), tcp_client->name(), raddr);
       }
       else
@@ -603,7 +603,7 @@ namespace gateway
                continue_msg_t pdu, pdu_req { msg->peek(), msg->readableBytes() };
                pdu.set_sender_id(++id);
                build_begin(pdu, pdu_req, [&, tconn = std::move(conn)] {
-                  tconn->send(pdu.data(), pdu.capacity());
+                  tconn->send(pdu, pdu.capacity());
                });
             }
             break;
@@ -614,7 +614,7 @@ namespace gateway
                continue_msg_t pdu, pdu_req { msg->peek(), msg->readableBytes() };
                pdu.set_sender_id(id);
                build_continue(pdu, pdu_req, [&, tconn = std::move(conn)] {
-                  tconn->send(pdu.data(), pdu.capacity());
+                  tconn->send(pdu, pdu.capacity());
                });
             } break;
 
