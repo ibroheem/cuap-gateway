@@ -38,7 +38,7 @@ namespace cuap
                return dest;
             }
 
-            void set_msisdn(bpstd::string_view _msisdn)
+            void set_msisdn(string_view _msisdn)
             {
                assign_n(_msisdn.data(), _msisdn.size(), BeginBody::MsIsdn , BeginBody::Service_Code);
             }
@@ -67,7 +67,7 @@ namespace cuap
                return dest;
             }
 
-            void set_service_code(bpstd::string_view svccode)
+            void set_service_code(string_view svccode)
             {
                assign_n(svccode.data(), svccode.size(), BeginBody::Service_Code, BeginBody::Code_Scheme);
             }
@@ -101,7 +101,7 @@ namespace cuap
                memcpy(dest, &buffer[BeginBody::Ussd_Content], command_len() - BeginBody::Ussd_Content);
             }
 
-            void set_ussd_content(bpstd::string_view content)
+            void set_ussd_content(string_view content)
             {
                assign_n(content.data(), content.size(), BeginBody::Ussd_Content, BeginBody::Ussd_Content + 182);
             }
