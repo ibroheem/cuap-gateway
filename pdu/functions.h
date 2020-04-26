@@ -3,8 +3,12 @@
 
 #ifdef USE_BPSTD_SRTRINGVIEW
    #include <bpstd/string_view.h>
+   using string_view_t = bpstd::string_view;
+   using bpstd::string_view;
 #else
    #include <string_view>
+   using string_view_t = std::string_view;
+   using std::string_view;
 #endif
 
 #include "types.h"
@@ -449,7 +453,7 @@ namespace cuap
          }
 
          /// Get Service Code from src and copy to dest
-         string service_code(bpstd::string_view buffer)
+         string service_code(string_view_t buffer)
          {
             string dest;
             for (size_t i = BeginBody::Service_Code; i < (BeginBody::Service_Code + 21) && i < buffer.size(); ++i)
@@ -487,7 +491,7 @@ namespace cuap
                       header::command_len(buffer) - BeginBody::Ussd_Content);
          }
 
-         std::string ussd_content(bpstd::string_view buffer)
+         std::string ussd_content(string_view_t buffer)
          {
             string dest;
             for (size_t i = BeginBody::Ussd_Content; i < buffer.size(); ++i)
