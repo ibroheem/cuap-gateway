@@ -291,8 +291,13 @@ namespace gateway
    void gateway_t::build_whitelist()
    {
       auto& config = this->cfg;
-      string tmp;
-      fstream ifs (config["white-list"].asString(), fstream::in);
+      string tmp, file = config["white-list"].asString();
+      fstream ifs (file, fstream::in);
+      if (!ifs.is_open())
+      {
+         fmt::print_yellow("{}. [ gateway_t::build_whitelist info ]: '{}' not found.\n", misc::current_time(), file);
+         return;
+      }
       while (getline(ifs, tmp))
       {
          white_list.insert(tmp);
@@ -300,6 +305,7 @@ namespace gateway
             fmt::print("{}\t", tmp);
          #endif
       }
+      fmt::print_green("{}. [ gateway_t::build_whitelist info ]: Whitelist built from '{}'\n", misc::current_time(), file);
    }
 
    void gateway_t::build_abort(pdu_type& pdu_req, auto&& fn)
@@ -353,7 +359,7 @@ namespace gateway
       string msisdn = pdu_req.msisdn();
       if (!white_list.contains(msisdn))
       {
-         fmt::print_yellow("{}. [ warn ]: '{}' not found in white-list, not serving.\n", misc::current_time(), msisdn);
+         fmt::print_yellow("{}. [ gateway_t::build_begin warn ]: '{}' not found in white-list, not serving.\n", misc::current_time(), msisdn);
          return;
       }
 
