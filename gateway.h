@@ -226,6 +226,8 @@ namespace gateway
          setup_bind(cfg, bindmsg);
       }
 
+      void build_whitelist();
+
       void build_abort(pdu_type&,     auto&&);
       void build_begin(pdu_type&,     pdu_type&, auto&&);
       void build_continue(pdu_type&,  pdu_type&, auto&&);
@@ -282,7 +284,23 @@ namespace gateway
 
       pdu::bind_msg_t       bindmsg;
       pdu::unbind_msg_t     unbindmsg;
+
+      std::set<string>     white_list;
    };
+
+   void gateway_t::build_whitelist()
+   {
+      auto& config = this->cfg;
+      string tmp;
+      fstream ifs (config["white-list"].asString(), fstream::in);
+      while (getline(ifs, tmp))
+      {
+         white_list.insert(tmp);
+         #ifdef ENABLE_PDU_LOG
+            fmt::print("{}\t", tmp);
+         #endif
+      }
+   }
 
    void gateway_t::build_abort(pdu_type& pdu_req, auto&& fn)
    {
@@ -332,16 +350,22 @@ namespace gateway
       static char fn_name[] = "build_begin";
 
       pdu_req.decode_header();
+      string msisdn = pdu_req.msisdn();
+      if (!white_list.contains(msisdn))
+      {
+         fmt::print_yellow("{}. [ warn ]: '{}' not found in white-list, not serving.\n", misc::current_time(), msisdn);
+         return;
+      }
 
       auto sender_id   = pdu_req.sender_id();
       auto receiver_id = pdu_req.receiver_id();
       auto op          = pdu_req.ussd_op_type();
 
-      string msisdn       = pdu_req.msisdn();
       string service_code = pdu_req.service_code();
+      string content      = pdu_req.ussd_content();
 
       fmt::print("{}. [ gateway::build_begin info ]: request: {}", misc::current_time(),
-         fmt::format(fmt_req_begin, sender_id, receiver_id, service_code, op_name(op), msisdn)
+         fmt::format(fmt_req_begin, sender_id, receiver_id, content, op_name(op), msisdn)
       );
 
       pdu.set_command_status(0);
@@ -489,7 +513,7 @@ namespace gateway
       {
          // When command_id = Begin, content is service code. Other times content stays content
          req->setBody(fmt::format(frmt_begin,
-               command_id::begin, packet.sender_id(), packet.command_len(), packet.msisdn(), packet.service_code()
+               command_id::begin, packet.sender_id(), packet.command_len(), packet.msisdn(), packet.ussd_content()
             )
          );
       }

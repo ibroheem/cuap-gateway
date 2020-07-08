@@ -66,6 +66,8 @@ namespace config
          client_t client;
       };
 
+      auto& operator[](const string& key) { return  root[key]; }
+
       cuap_t gateway;
       map<string, cuap_t> gateways;
 
@@ -78,6 +80,7 @@ namespace config
       void write(string_view data);
 
       string data;
+      Json::Value  root;
    };
 
    url_t parse_url(string_view url)
@@ -103,7 +106,7 @@ namespace config
       try
       {
          Json::Reader reader;
-         Json::Value  root;
+
          bool parsed = reader.parse(text, root);
          if (!parsed)
          {
