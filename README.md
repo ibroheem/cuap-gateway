@@ -114,7 +114,7 @@ TODO: Building via CMAKE.
     welcome-page: related to app.mode.simple: string [WIP]
 
     white-list: Links to a file listing MSISDN allowed by the gateway to make requests. Any MSISDN not found in the list is ignored.
-                MSISDN in file are is separated by new line.
+                MSISDN in file are is separated by new line. Example file included in repo.
 
    `client` :  http backend related config
 
