@@ -224,6 +224,7 @@ namespace gateway
       {
          setup_config();
          setup_bind(cfg, bindmsg);
+         build_whitelist();
       }
 
       void build_whitelist();
@@ -291,7 +292,7 @@ namespace gateway
    void gateway_t::build_whitelist()
    {
       auto& config = this->cfg;
-      string tmp, file = config["white-list"].asString();
+      string tmp, file = config["gateway"]["white-list"].asString();
       fstream ifs (file, fstream::in);
       if (!ifs.is_open())
       {
