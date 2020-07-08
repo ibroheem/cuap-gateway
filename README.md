@@ -67,6 +67,8 @@ TODO: Building via CMAKE.
          "system-type" : "USSD",
          "welcome-page": "WIP",
 
+         "white-list": "./whitelist",
+
          "client": {
            "url": "http://127.0.0.1:9980/",
            "error": {
@@ -110,6 +112,9 @@ TODO: Building via CMAKE.
           Specification says not more than 13 characters. Truncation will in the gateway if it exceeds.
     
     welcome-page: related to app.mode.simple: string [WIP]
+
+    white-list: Links to a file listing MSISDN allowed by the gateway to make requests. Any MSISDN not found in the list is ignored.
+                MSISDN in file are is separated by new line.
 
    `client` :  http backend related config
 
