@@ -1,4 +1,4 @@
-#ifndef GATEWAY_T_H
+﻿#ifndef GATEWAY_T_H
 #define GATEWAY_T_H
 
 #include <trantor/net/TcpClient.h>
@@ -124,15 +124,6 @@ namespace gateway
    using msg_buffer_t   = MsgBuffer*;
    using http_request_t = const HttpRequestPtr&;
    using http_response_t= const HttpResponsePtr&;
-
-   cchar_t fmt_cmdid     = "Command ID  : 0x{:08x}, {}\n";
-   cchar_t fmt_req_cont  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
-   cchar_t fmt_resp_ok   = R"({{ "status": {}, "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
-
-   static char fmt_req_begin[]  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
-   static char fmt_req_error[]  = R"({}. [ gateway::{} error ]: request to {} failed: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
-   static char fmt_data_error[] = R"({}. [ gateway::{} error ]: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
-
 
    void setup_bind(config::config_t& cfg, pdu::bind_msg_t& bindmsg)
    {
@@ -340,7 +331,7 @@ namespace gateway
          else
          {
             fmt::print_red("{}. [ gateway::build_abort error ]: request to {} failed\n",
-               misc::current_time(), cfg.http.url
+               misc::current_time(), cfg.gateway.client.url
             );
          }
 
@@ -358,10 +349,10 @@ namespace gateway
 
       pdu_req.decode_header();
       string msisdn = pdu_req.msisdn();
-      if (!white_list.contains(msisdn))
+      if (!white_list.empty() and !white_list.contains(msisdn))
       {
          fmt::print_yellow("{}. [ gateway_t::build_begin warn ]: '{}' not found in white-list, not serving.\n", misc::current_time(), msisdn);
-         return;
+         return ;
       }
 
       auto sender_id   = pdu_req.sender_id();
@@ -408,7 +399,7 @@ namespace gateway
                fmt::print_red("{}. [ gateway::build_begin error ]: Unable to parse JSON response: {}\n",
                   misc::current_time(), response->body()
                );
-               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.http.error.invalid_data);
+               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.gateway.client.error.invalid_data);
                pdu.set_command_id(pdu::CommandIDs::End);
                pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
                pdu.set_ussd_content(cfg.http.error.invalid_data);
@@ -416,10 +407,12 @@ namespace gateway
          }
          else
          {
-            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.http.url, sender_id, cfg.http.error.request_failed);
+            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.gateway.client.url, sender_id,
+                cfg.gateway.client.error.request_failed
+            );
             pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
             pdu.set_command_id(pdu::CommandIDs::End);
-            pdu.set_ussd_content(cfg.http.error.request_failed);
+            pdu.set_ussd_content(cfg.gateway.client.error.request_failed);
          }
 
          pdu.set_command_len();
@@ -482,18 +475,20 @@ namespace gateway
             else
             {
                fmt::print_red("{}. [ gateway::build_continue error ]: Unable to parse JSON response: {}\n", misc::current_time(), response->body());
-               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.http.error.invalid_data);
+               fmt::print_red(fmt_data_error, misc::current_time(), fn_name, sender_id, cfg.gateway.client.error.invalid_data);
                pdu.set_command_id(pdu::CommandIDs::End);
                pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
-               pdu.set_ussd_content(cfg.http.error.invalid_data);
+               pdu.set_ussd_content(cfg.gateway.client.error.invalid_data);
             }
          }
          else
          {
-            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.http.url, sender_id, cfg.http.error.could_not_fetch);
+            fmt::print_red(fmt_req_error, misc::current_time(), fn_name, cfg.gateway.client.url, sender_id,
+               cfg.gateway.client.error.could_not_fetch
+            );
             pdu.set_ussd_op_type(pdu::USSDOperationTypes::USSN);
             pdu.set_command_id(pdu::CommandIDs::End);
-            pdu.set_ussd_content(cfg.http.error.could_not_fetch);
+            pdu.set_ussd_content(cfg.gateway.client.error.could_not_fetch);
          }
 
          pdu.set_command_len();
@@ -561,7 +556,7 @@ namespace gateway
          else
          {
             fmt::print_red("{}. [ gateway::send_http_request error ]: request to {} failed\n",
-               misc::current_time(), cli_cfg.rurl
+               misc::current_time(), cfg.gateway.client.url
             );
             /// TODO: Error to be displayed to mobile be defined in config file
          }
