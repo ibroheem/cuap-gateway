@@ -211,6 +211,8 @@ namespace gateway
 
    struct gateway_t
    {
+      enum class data_transfer_mode_t { json, xml };
+
       gateway_t(misc::cli_config_t& config);
 
       void build_whitelist();
@@ -230,6 +232,7 @@ namespace gateway
       void on_message(tcp_conn_t conn, msg_buffer_t msg);
 
       void setup_config();
+      void setup_data_transfer_mode();
 
       void run();
 
@@ -246,6 +249,7 @@ namespace gateway
       pdu::unbind_msg_t    unbindmsg;
 
       std::set<string>     white_list;
+      data_transfer_mode_t data_transfer_mode = data_transfer_mode_t::json;
    };
 
    gateway_t::gateway_t(misc::cli_config_t& config) : cli_cfg(config)
@@ -266,7 +270,7 @@ namespace gateway
       {
          white_list.insert(tmp);
          #ifdef ENABLE_PDU_LOG
-            fmt::print("{}\t", tmp);
+            fmt::print("{}\n", tmp);
          #endif
       }
       fmt::print_green("{}. [ gateway_t::build_whitelist info ]: Whitelist built from '{}'\n", misc::current_time(), file);
@@ -561,7 +565,7 @@ namespace gateway
       }
       else
       {
-         fmt::print_red("{} [ gateway::on_connection error ]: Connection error!\n", misc::current_time());
+         fmt::print_red("{}. [ gateway::on_connection error ]: Connection error.\n", misc::current_time());
          init();
       }
    }
@@ -571,7 +575,7 @@ namespace gateway
       using namespace std::literals;
 
       fmt::print_red("{}. [ gateway_t::on_conn_error error ]: Connection Lost.\n", current_time());
-      std::this_thread::sleep_for(1s);
+      std::this_thread::sleep_for(5s);
       init();
    }
 
@@ -680,6 +684,24 @@ namespace gateway
          addr = InetAddress(cli_cfg.chost, cli_cfg.cport);
          http_client = HttpClient::newHttpClient(cli_cfg.rurl, evloop_http.getLoop());
       }
+   }
+
+   void gateway_t::setup_data_transfer_mode()
+   {
+      string md = cfg["data-transfer-mode"].asString();
+      if (md == "xml")
+      {
+         data_transfer_mode = data_transfer_mode_t::xml;
+         format::req_cont = R"(<continue>
+   <sid>{}</sid>
+   <rid>{}</rid>
+   <service_code>{}</service_code>
+   <operation>{}</operation>
+   <msisdn>{}</msisdn>
+   <content>{}</content>
+</continue>)";
+      }
+
    }
 
    void gateway_t::run()

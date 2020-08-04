@@ -22,6 +22,12 @@ char fmt_req_begin[]  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_cod
 char fmt_req_error[]  = R"({}. [ gateway::{} error ]: request to {} failed: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
 char fmt_data_error[] = R"({}. [ gateway::{} error ]: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
 
+namespace format
+{
+   string cmd_id    = "Command ID  : 0x{:08x}, {}\n";
+   string req_cont  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
+}
+
 namespace misc
 {
    enum class time_format { default_, logfile };

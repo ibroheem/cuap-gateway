@@ -4,7 +4,8 @@
       "threads": 2
    },
 
-   "gateway": {
+   "gateway":
+   {
       "host": "10.21.23.15",
       "port": 8727,
 
@@ -13,8 +14,8 @@
       "system-type" : "USSD",
       "welcome-page": "Not needed in gateway mode, can be left empty",
 
-      "white-list": "./whitelist",
-      "data": "xml", /* json | xml */
+      "white-list": "",
+      "data-transfer-mode": "xml", /* json | xml */
 
       "client": {
         "url": "http://127.0.0.1:9980/",

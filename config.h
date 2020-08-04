@@ -48,7 +48,7 @@ namespace config
          client_t client;
       };
 
-      auto& operator[](const string& key) { return  root[key]; }
+      auto& operator[](const string& key) { return root[key]; }
 
       cuap_t gateway;
       map<string, cuap_t> gateways;
@@ -96,7 +96,8 @@ namespace config
             return false;
          }
 
-         auto use_json = [&]() {
+         auto use_json = [&]()
+         {
             app.mode    = root["app"]["mode"].asString();
             app.threads = root["app"]["threads"].asUInt();
 
