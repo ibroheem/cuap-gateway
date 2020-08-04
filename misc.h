@@ -14,6 +14,14 @@ using std::string;
 #define NL printf("\n");
 #define DL printf("\n\n");
 
+char fmt_cmdid []    = "Command ID  : 0x{:08x}, {}\n";
+char fmt_req_cont[]  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
+char fmt_resp_ok[]   = R"({{ "status": {}, "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}", "content": "{}" }})""\n";
+
+char fmt_req_begin[]  = R"({{ "sid": "0x{:08x}", "rid": "0x{:08x}", "service_code": "{}", "operation": "{}", "msisdn": "{}" }})""\n";
+char fmt_req_error[]  = R"({}. [ gateway::{} error ]: request to {} failed: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
+char fmt_data_error[] = R"({}. [ gateway::{} error ]: {{ "sid": "0x{:08x}", "message": "{}" }})""\n";
+
 namespace misc
 {
    enum class time_format { default_, logfile };

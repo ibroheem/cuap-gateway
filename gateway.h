@@ -119,11 +119,11 @@ namespace misc
 
 namespace gateway
 {
-   using tcp_client_t   = std::shared_ptr<trantor::TcpClient>;
-   using tcp_conn_t     = const TcpConnectionPtr&;
-   using msg_buffer_t   = MsgBuffer*;
-   using http_request_t = const HttpRequestPtr&;
-   using http_response_t= const HttpResponsePtr&;
+   using tcp_client_t    = std::shared_ptr<trantor::TcpClient>;
+   using tcp_conn_t      = const TcpConnectionPtr&;
+   using msg_buffer_t    = MsgBuffer*;
+   using http_request_t  = const HttpRequestPtr&;
+   using http_response_t = const HttpResponsePtr&;
 
    void setup_bind(config::config_t& cfg, pdu::bind_msg_t& bindmsg)
    {
@@ -211,12 +211,7 @@ namespace gateway
 
    struct gateway_t
    {
-      gateway_t(misc::cli_config_t& config) : cli_cfg(config)
-      {
-         setup_config();
-         setup_bind(cfg, bindmsg);
-         build_whitelist();
-      }
+      gateway_t(misc::cli_config_t& config);
 
       void build_whitelist();
 
@@ -228,42 +223,15 @@ namespace gateway
       auto build_http_request(pdu_type& packet);
       void send_http_request(HttpRequestPtr& req);
 
+      void init();
+
       void on_connect(tcp_conn_t conn);
+      void on_conn_error();
       void on_message(tcp_conn_t conn, msg_buffer_t msg);
 
-      void setup_config()
-      {
-         if (!cli_cfg.config.empty())
-         {
-            cfg.read_then_parse<config::config_type::json>(cli_cfg.config);
-            addr        = InetAddress(cfg.gateway.host, cfg.gateway.port);
-            http_client = HttpClient::newHttpClient(cfg.gateway.client.url, evloop_http.getLoop()),
-            tcp_client  = std::make_shared<trantor::TcpClient>(evloop_tcp.getLoop(), addr, "gateway");
-            cli_cfg.rurl= cfg.gateway.client.url;
-         }
-         else
-         {
-            addr = InetAddress(cli_cfg.chost, cli_cfg.cport);
-            http_client = HttpClient::newHttpClient(cli_cfg.rurl, evloop_http.getLoop()),
-            tcp_client  = std::make_shared<trantor::TcpClient>(evloop_tcp.getLoop(), addr, "gateway");
-         }
-      }
+      void setup_config();
 
-      void setup_tcp()
-      {
-         tcp_client->setConnectionCallback([&] (tcp_conn_t conn) { on_connect(conn); });
-         tcp_client->setMessageCallback([&](tcp_conn_t conn, msg_buffer_t msg) { on_message(conn, msg); });
-      }
-
-      void run()
-      {
-         setup_tcp();
-         tcp_client->connect();
-
-         evloop_tcp.run();
-         evloop_http.run();
-         evloop_tcp.wait();
-      }
+      void run();
 
       misc::cli_config_t   cli_cfg;
       config::config_t     cfg;
@@ -274,11 +242,15 @@ namespace gateway
       tcp_client_t         tcp_client;
       HttpClientPtr        http_client;
 
-      pdu::bind_msg_t       bindmsg;
-      pdu::unbind_msg_t     unbindmsg;
+      pdu::bind_msg_t      bindmsg;
+      pdu::unbind_msg_t    unbindmsg;
 
       std::set<string>     white_list;
    };
+
+   gateway_t::gateway_t(misc::cli_config_t& config) : cli_cfg(config)
+   {
+   }
 
    void gateway_t::build_whitelist()
    {
@@ -545,6 +517,15 @@ namespace gateway
       return req;
    }
 
+   void gateway_t::init()
+   {
+      tcp_client  = std::make_shared<trantor::TcpClient>(evloop_tcp.getLoop(), addr, "gateway");
+      tcp_client->setConnectionCallback([&] (tcp_conn_t conn)  { on_connect(conn); });
+      tcp_client->setConnectionErrorCallback([&] { on_conn_error(); });
+      tcp_client->setMessageCallback([&] (tcp_conn_t conn, msg_buffer_t msg) { on_message(conn, msg); } );
+      tcp_client->connect();
+   }
+
    void gateway_t::send_http_request(HttpRequestPtr& req)
    {
       http_client->sendRequest(req, [&](ReqResult result, const HttpResponsePtr& response)
@@ -568,7 +549,7 @@ namespace gateway
       if (conn->connected())
       {
          std::string raddr = conn->peerAddr().toIpPort();
-         fmt::print_cyan("{}. [ {}::on_connection info ]: Connected to: {}\n",          misc::current_time(), tcp_client->name(), raddr);
+         fmt::print_cyan("{}. [ {}::on_connection info ]: Connected to: {}\n", misc::current_time(), tcp_client->name(), raddr);
          setup_bind(cfg, bindmsg);
 
          #ifdef ENABLE_PDU_LOG
@@ -581,8 +562,17 @@ namespace gateway
       else
       {
          fmt::print_red("{} [ gateway::on_connection error ]: Connection error!\n", misc::current_time());
-         tcp_client->connect();
+         init();
       }
+   }
+
+   void gateway_t::on_conn_error()
+   {
+      using namespace std::literals;
+
+      fmt::print_red("{}. [ gateway_t::on_conn_error error ]: Connection Lost.\n", current_time());
+      std::this_thread::sleep_for(1s);
+      init();
    }
 
    void gateway_t::on_message(tcp_conn_t conn, msg_buffer_t msg)
@@ -674,6 +664,35 @@ namespace gateway
          fmt::print_red("{}. [ gateway_t::on_message error ]: Not connected\n", current_time());
       }
       msg->retrieveAll();
+   }
+
+   void gateway_t::setup_config()
+   {
+      if (!cli_cfg.config.empty())
+      {
+         cfg.read_then_parse<config::config_type::json>(cli_cfg.config);
+         addr        = InetAddress(cfg.gateway.host, cfg.gateway.port);
+         http_client = HttpClient::newHttpClient(cfg.gateway.client.url, evloop_http.getLoop());
+         cli_cfg.rurl= cfg.gateway.client.url;
+      }
+      else
+      {
+         addr = InetAddress(cli_cfg.chost, cli_cfg.cport);
+         http_client = HttpClient::newHttpClient(cli_cfg.rurl, evloop_http.getLoop());
+      }
+   }
+
+   void gateway_t::run()
+   {
+      Logger::setLogLevel(Logger::LogLevel::kError);
+      setup_config();
+      setup_bind(cfg, bindmsg);
+      build_whitelist();
+      init();
+
+      evloop_tcp.run();
+      evloop_http.run();
+      evloop_tcp.wait();
    }
 
    void main(int argc,  char* argv[])

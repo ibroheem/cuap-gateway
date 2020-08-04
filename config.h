@@ -4,24 +4,6 @@
 #include <fstream>
 #include <string_view>
 
-/*#include <chrono>
-#include <cstdlib>
-
-#include "argparser/argparser.hpp"
-#include "fmt-5.h"*/
-
-#ifdef USE_TOML11
-   #include <toml11/toml.hpp>
-#endif
-
-#ifdef TINY_TOML
-   #include <tinytoml/toml.h>
-#endif
-
-#ifdef USE_TOMLPLUSPLUS
-   #include <toml++/toml.h>
-#endif
-
 using std::getline;
 using std::fstream;
 using std::string;
@@ -137,30 +119,7 @@ namespace config
 
          };
 
-         auto use_toml = [&]()
-         { // TODO
-         #ifdef TINY_TOML
-            app.mode    = root["app"]["mode"].asString();
-            app.threads = root["app"]["threads"].asUInt();
-
-            gateway.host = root["gateway"]["host"].asString();
-            gateway.port = root["gateway"]["port"].asString();
-
-            gateway.system_id    = root["gateway"]["system-id"].asString();
-            gateway.password     = root["gateway"]["password"].asString();
-            gateway.system_type  = root["gateway"]["system-type"].asString();
-
-            gateway.interface_version  = root["gateway"]["interface-version"].asString();
-            gateway.welcome_page       = root["gateway"]["welcome-page"].asString();
-
-            http.url  = root["gateway"]["client"]["url"].asString();
-         #endif
-         };
-
-         if constexpr(cfg_type == config_type::json)
-            use_json();
-         else if constexpr (cfg_type == config_type::toml)
-            use_toml();
+         use_json();
 
          return true;
       }
@@ -207,7 +166,6 @@ namespace config
       {
          data += tmp;
       }
-
       if (data.empty())
          return ;
 
@@ -223,59 +181,6 @@ namespace config
 
 namespace config::tests
 {
-   void tinytoml_test()
-   {
-   #ifdef TINY_TOML
-      std::ifstream ifs("config.toml");
-      toml::ParseResult pr = toml::parse(ifs);
-
-      if (!pr.valid())
-      {
-         fmt::print_red("{}\n", pr.errorReason);
-         return;
-      }
-
-      const toml::Value& v = pr.value;
-
-      const toml::Value* x = v.find("app.mode");
-      if (x && x->is<std::string>())
-      {
-         fmt::print_green("{}\n", x->as<string>());
-      }
-      else if (x && x->is<int>())
-      {
-         fmt::print_green("{}\n", x->as<int>());
-      }
-   #endif
-   }
-
-   void toml11_test()
-   {
-      #ifdef USE_TOML11
-         const auto data  = toml::parse("example.toml");
-         const auto title = toml::find<std::string>(data, "title");
-         fmt::print_green("Title: {}\n", title);
-      #endif
-   }
-
-   void toml_test()
-   {
-   #ifdef USE_TOMLPLUSPLUS
-      toml::table tbl;
-      try
-      {
-        tbl = toml::parse_file("configuration.toml");
-      }
-      catch (const toml::parse_error& err)
-      {
-         fmt::print_red("Error parsing file '{}':\n {}\n ({})\n", err.source().path, err.description(), err.source().begin);
-        return ;
-      }
-
-      do_stuff_with_your_config(tbl);
-   #endif
-   }
-
    void url_parse()
    {
       constexpr string_view text = "http://qwert.mjgug.ouhnbg:5678/path1/path2.html?get=5060?you=all";
@@ -312,11 +217,6 @@ namespace config::tests
 
    void main(int argc, char* argv[])
    {
-      /*
-      url_parse(); NL
-      toml_test(); NL
-      toml11_test(); NL
-      tinytoml_test(); NL*/
       config_test(); NL
    }
 }
