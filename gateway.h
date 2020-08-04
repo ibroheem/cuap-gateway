@@ -517,7 +517,7 @@ namespace gateway
             )
          );
       }
-      fmt::print_green("{}. [ gateway::build_http_request info ]: request: {}", misc::current_time(), req->body());
+      fmt::print("{}. [ gateway::build_http_request info ]: request: {}", misc::current_time(), req->body());
       return req;
    }
 
@@ -575,7 +575,7 @@ namespace gateway
       using namespace std::literals;
 
       fmt::print_red("{}. [ gateway_t::on_conn_error error ]: Connection Lost.\n", current_time());
-      std::this_thread::sleep_for(5s);
+      std::this_thread::sleep_for(10s);
       init();
    }
 
@@ -586,9 +586,9 @@ namespace gateway
       {
          string_view_t data { msg->peek(), msg->readableBytes() };
          auto cmd = htobe32(header::command_id(data));
-         fmt::print_green(fmt_cmdid, cmd, pdu_name(cmd));
 
       #ifdef ENABLE_PDU_LOG
+         fmt::print_green(fmt_cmdid, cmd, pdu_name(cmd));
          misc::print_pdu(data.data(), data.size());
       #endif
 
