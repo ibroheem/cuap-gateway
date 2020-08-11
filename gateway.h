@@ -199,12 +199,13 @@ namespace gateway
          {
             if (result == ReqResult::Ok && response)
             {
-               fmt::print_yellow("{}. [ send::db_request info ]: Data submitted to dB handler\n", misc::current_time());
+               fmt::print_green("{}. [ send::db_request info ]: Data submitted to dB handler\n", misc::current_time());
             }
             else
             {
                fmt::print_yellow("{}. [ send::db_request info ]: Data not submitted to dB handler, saving...\n", misc::current_time());
             }
+            fmt::print(std::flush(std::cout), "");
          });
       }
    }
@@ -565,9 +566,10 @@ namespace gateway
       }
       else
       {
-         fmt::print_red("{}. [ gateway::on_connection error ]: Connection error.\n", misc::current_time());
+         fmt::print_red("{}. [ gateway::on_connection error ]: Disconnected.\n", misc::current_time());
          init();
       }
+      fmt::print(std::flush(std::cout), "");
    }
 
    void gateway_t::on_conn_error()
@@ -575,6 +577,7 @@ namespace gateway
       using namespace std::literals;
 
       fmt::print_red("{}. [ gateway_t::on_conn_error error ]: Connection Lost.\n", current_time());
+      fmt::print(std::flush(std::cout), "");
       std::this_thread::sleep_for(10s);
       init();
    }
@@ -588,7 +591,7 @@ namespace gateway
          auto cmd = htobe32(header::command_id(data));
 
       #ifdef ENABLE_PDU_LOG
-         fmt::print_green(fmt_cmdid, cmd, pdu_name(cmd));
+         //fmt::print_green(fmt_cmdid, cmd, pdu_name(cmd));
          misc::print_pdu(data.data(), data.size());
       #endif
 
@@ -606,6 +609,7 @@ namespace gateway
                {
                   fmt::print_red("{}. [ {}::on_message error ]: Bind Failed!\n", misc::current_time(), tcp_client->name());
                }
+               fmt::print(std::flush(std::cout), "");
                HttpRequestPtr req = build_http_request<command_id::bind>(bindresp);
                send_http_request(req);
                msg->retrieveAll();
@@ -667,6 +671,7 @@ namespace gateway
       {
          fmt::print_red("{}. [ gateway_t::on_message error ]: Not connected\n", current_time());
       }
+      fmt::print(std::flush(std::cout), "");
       msg->retrieveAll();
    }
 
