@@ -233,5 +233,83 @@ namespace misc
 
 }
 
+namespace misc
+{
+   struct cli_config_t
+   {
+      string host = "0.0.0.0", chost, rurl, rhost, config;
+      int port     = 9900 /** Issue Tracker takes 9900 - 9904 */, cport, rport= 0/** remote url port */;
+      int num_conns = 10, threads = 4, timeout = 5, report_every = 10; // timeout and report_every are in secs
+   };
+
+   enum command_id
+   {
+      bind   = 0x00000065, unbind = 0x00000066, bindresp = 0x00000067, unbindresp= 0x00000068,
+      begin  = 0x0000006f, continue_ = 0x00000070, end = 0x71, abort = 0x72,
+      switch_ = 0x00000074, switchbegin = 0x00000077,
+      chargeind = 0x00000075, chargeindresp = 0x00000076,
+      shake  = 0x00000083, shakeresp = 0x00000084, error = 0x00
+   };
+
+   bool check_json(Json::Value& body)
+   {
+      if (body.isMember("command"))
+      {
+         decltype(auto) cmd = body["command"].asUInt();
+         if (cmd == command_id::begin or cmd == command_id::continue_ or cmd == command_id::end)
+         {
+            return body.isMember("msisdn")  and body.isMember("content");
+         }
+         else if (body["command"].asUInt() == command_id::bind)
+         {
+            return body.isMember("system_id");
+         }
+      }
+      return false;
+   }
+
+   auto parse_json(Json::Value& json, string_view_t text)
+   {
+      Json::Reader reader;
+      return reader.parse(text.data(), json);
+   }
+
+   bool setup_cli(ap::argmap& args, int argc, char* argv[])
+   {
+      ap::parser p;
+      p.init(argc, argv);
+      p.set_caption("A CUAP gateway that allows data transfer via HTTP interface.");
+      p.add("-c", "--config",    "config file",     ap::mode::OPTIONAL);
+
+      args = p.parse();
+
+      if (args.parsed_successfully())
+      {
+         return true;
+      }
+
+      fmt::print(std::clog, "{}. [ misc::setup_cli error ]: Error Parsing Command Line Arguements\n", misc::current_time());
+      return false;
+   }
+
+   void setup_config(cli_config_t& cfg)
+   {
+      auto fn = [&] <typename T> (std::string arg, T val)
+      {
+         bool empty = args[arg].empty();
+         if constexpr (std::is_integral_v<T>)
+         {
+            return !empty ? std::stoi(args[arg]) : val;
+         }
+         else
+         {
+            return !empty ? args[arg] : val;
+         }
+      };
+
+      cfg.config   = fn("--config",  cfg.config);
+   }
+}
+
 #endif//misc_h
 
